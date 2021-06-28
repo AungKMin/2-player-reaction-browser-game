@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>2-player Reaction Game</title>
+    <style>
+
+      /* General styles */
+
+      html {
+        background-color: white;
+        height: 100%;
+        font-family: sans-serif;
+      }
+
+      body {
+        height: inherit;
+        background-color: #252121;
+        margin: 0;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      /* UI Layout */
+
+      section {
+        width: 100%;
+        height: inherit;
+        padding: 30px;
+      }
+
+      .topbar {
+        height: 50%;
+        display: flex;
+        justify-content: space-between;
+      }
+
+      .topbar p, button {
+        margin: 0;
+        font-size: 1.5rem;
+        border: 5px solid;
+        border-radius: 20px;
+        padding: 10px 20px;
+      }
+
+      .p1, .p2 {
+        align-self: flex-start;
+		width: 200px;
+		max-width: 200px;
+		min-width: 200px;
+      }
+
+      .topbar .p1 {
+        order: 0;
+        border-color: #ffcccb;
+        color: #ffcccb;
+      }
+
+      .topbar .p2 {
+        order: 2;
+        border-color: #89CFF0;
+        color: #89CFF0;
+      }
+
+      .topbar .middlebar {
+        order: 1;
+      }
+
+      .middlebar {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: space-between;
+      }
+
+      /* Button-specific styling */
+
+      button {
+        border: 0;
+        padding: 12.75px 20px;
+        background-color: #90ee90;
+        cursor: pointer;
+		margin-top: 50px;
+      }
+
+      button:hover, button:focus {
+        background-color: #eee;
+      }
+
+      button:active {
+        background-color: #fff;
+      }
+
+      /* spinner-specific styling */
+
+      .spinner {
+        position: absolute;
+        z-index: 1;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+		color: white;
+      }
+
+      .spinner div {
+        height: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      .spinner p {
+        margin: 0;
+        font-size: 10rem;
+      }
+	  
+	  /* Text */
+	  
+	  .intro { 
+		width: 35%;
+		text-align: center;
+		background-color: white;
+		border-radius: 20px;
+	  }
+	  
+	  .result { 
+		color: white;
+	  }
+	  
+    </style>
+  </head>
+  <body>
+
+    <div class="spinner"><div><p>↻</p></div></div>
+
+    <section class="ui">
+      <div class="topbar">
+        <p class="p1">Player 1: "A"</p>
+        <p class="p2">Player 2: "L"</p>
+        <div class="middlebar">
+          <button>Start</button>
+          <p class="result"></p>
+		  <div class="intro">
+			<p>After clicking "Start," wait for the spinner to stop. Then, press your button before your opponent to win. Player 1, press "A"; Player 2, press "B".</p>
+		  </div>
+        </div>
+      </div>
+    </section>
+    <script>
+	
+		// spinner
+		const spinner = document.querySelector('.spinner p');
+		// spinener container
+		const spinnerContainer = document.querySelector('.spinner');
+		// spinner's spin degree
+		let spinDegree = 0;
+		// when the spinner started spinning
+		let startTime = null;
+		// instance of requestAnimationFrame
+		let rAF;
+		// start button
+		const button = document.querySelector('button');
+		// results paragraph
+		const result = document.querySelector('.result');
+		// introduction paragraph
+		const intro = document.querySelector('.intro');
+		
+		// generate random number between min and max (including min, not including max)
+		function random(min, max) { 
+			return Math.floor(Math.random()*(max-min)) + min;
+		}
+		
+		// function to draw the spinner
+		function draw(timeStamp) { 
+		
+			if (!startTime) { 
+				startTime = timeStamp;
+			}
+			
+			spinDegree = (timeStamp - startTime) / 3;
+			
+			spinDegree %= 360;
+			
+			spinner.style.transform = `rotate(${spinDegree}deg)`;
+			
+			rAF = requestAnimationFrame(draw);
+		}
+		
+		// hide the spinner and results
+		result.style.display = 'none';
+		spinnerContainer.style.display = 'none';
+		
+		// function to reset the game
+		function reset() { 
+			button.style.display = 'block';
+			result.textContent = '';
+			result.style.display = 'none';
+			intro.style.display = 'block';
+		}
+		
+		// start button event
+		button.addEventListener('click', start);
+		
+		// function to start the game
+		function start() { 
+			draw();
+			spinnerContainer.style.display = 'block';
+			button.style.display = 'none';
+			let end = setTimeout(setEndgame, random(3000, 10000)); // set timer for anywhere between 3 to 10 seconds
+			
+			// event listener for if a player enters before time's up
+			document.addEventListener('keydown', keyHandler2);
+			
+			// key handler for if a player press before time
+			function keyHandler2(e) { 
+				let isOver = false;
+				console.log(e.key);
+				
+				if (e.key == "a") {
+					result.textContent = "Player 1 pressed too early. Player 2 Wins";
+					isOver = true;
+				} else if (e.key == "l") { 
+					result.textContent = "Player 2 pressed too early. Player 1 Wins";
+					isOver = true;
+				}
+				
+				// if the game's over, reset the game
+				if (isOver) {
+					cancelAnimationFrame(rAF); // stop the spinner
+					spinnerContainer.style.display = 'none';
+					result.style.display = 'block';
+					document.removeEventListener('keydown', keyHandler2);
+					clearTimeout(end);
+					setTimeout(reset, 3000); // wait 3 seconds before reseting the initial state
+				}
+			}
+			
+			// hide intro
+			intro.style.display = 'none';
+		}
+		
+		//function to end the game when the timer ends
+		function setEndgame() { 
+		
+			cancelAnimationFrame(rAF);	// stop the spinner
+			spinnerContainer.style.display = 'none';
+			result.style.display = 'block';
+			result.textContent = 'Press your button!';
+			
+			document.addEventListener('keydown', keyHandler);
+			
+			function keyHandler(e) { 
+				let isOver = false;
+				console.log(e.key);
+				
+				if (e.key == "a") {
+					result.textContent = "Player 1 Wins";
+					isOver = true;
+				} else if (e.key == "l") { 
+					result.textContent = "Player 2 Wins";
+					isOver = true;
+				}
+				
+				// if the game's over, reset the game
+				if (isOver) {
+					document.removeEventListener('keydown', keyHandler);
+					document.removeEventListener('keydown', keyHandler2);
+					setTimeout(reset, 3000); // wait 3 seconds before reseting the initial state
+				}
+			}
+			
+		}
+
+    </script>
+  </body>
+</html>
